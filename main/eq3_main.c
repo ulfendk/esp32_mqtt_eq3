@@ -210,12 +210,15 @@ static struct gattc_profile_inst gl_profile_tab[PROFILE_NUM] = {
 static void gattc_command_error(esp_bd_addr_t bleda, char *error){
     /* Only send the response if there are no retries available */
     if(command_complete(false) == EQ3_CMD_FAILED){
+        char deviceId[18];
+        sprintf(deviceId, "%02X:%02X:%02X:%02X:%02X:%02X", bleda[0], bleda[1], bleda[2], bleda[3], bleda[4], bleda[5]);
         char statrep[120];
         int statidx = 0;
         statidx += sprintf(&statrep[statidx], "{");
-        statidx += sprintf(&statrep[statidx], "\"trv\":\"%02X:%02X:%02X:%02X:%02X:%02X\",", bleda[0], bleda[1], bleda[2], bleda[3], bleda[4], bleda[5]);
+        // statidx += sprintf(&statrep[statidx], "\"trv\":\"%02X:%02X:%02X:%02X:%02X:%02X\",", bleda[0], bleda[1], bleda[2], bleda[3], bleda[4], bleda[5]);
+        statidx += sprintf(&statrep[statidx], "\"trv\":\"%s\",", deviceId);// bleda[0], bleda[1], bleda[2], bleda[3], bleda[4], bleda[5]);
         statidx += sprintf(&statrep[statidx], "\"error\":\"%s\"}", error);
-        send_trv_status(statrep);
+        send_trv_status(statrep, deviceId);
         eq3_add_log(statrep);
     }
     /* 2 second delay until disconnect to allow any background GATTC stuff to complete */
@@ -461,12 +464,17 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
 
         uint8_t tempval, temphalf = 0;
+
+        char deviceId[18];
+        sprintf(deviceId, "%02X:%02X:%02X:%02X:%02X:%02X", gl_profile_tab[PROFILE_A_APP_ID].remote_bda[0], gl_profile_tab[PROFILE_A_APP_ID].remote_bda[1],
+            gl_profile_tab[PROFILE_A_APP_ID].remote_bda[2], gl_profile_tab[PROFILE_A_APP_ID].remote_bda[3], gl_profile_tab[PROFILE_A_APP_ID].remote_bda[4], gl_profile_tab[PROFILE_A_APP_ID].remote_bda[5]);
         char statrep[240];
         int statidx = 0;
 
         statidx += sprintf(&statrep[statidx], "{");
-        statidx += sprintf(&statrep[statidx], "\"trv\":\"%02X:%02X:%02X:%02X:%02X:%02X\",", gl_profile_tab[PROFILE_A_APP_ID].remote_bda[0], gl_profile_tab[PROFILE_A_APP_ID].remote_bda[1],
-            gl_profile_tab[PROFILE_A_APP_ID].remote_bda[2], gl_profile_tab[PROFILE_A_APP_ID].remote_bda[3], gl_profile_tab[PROFILE_A_APP_ID].remote_bda[4], gl_profile_tab[PROFILE_A_APP_ID].remote_bda[5]);
+        // statidx += sprintf(&statrep[statidx], "\"trv\":\"%02X:%02X:%02X:%02X:%02X:%02X\",", gl_profile_tab[PROFILE_A_APP_ID].remote_bda[0], gl_profile_tab[PROFILE_A_APP_ID].remote_bda[1],
+        //     gl_profile_tab[PROFILE_A_APP_ID].remote_bda[2], gl_profile_tab[PROFILE_A_APP_ID].remote_bda[3], gl_profile_tab[PROFILE_A_APP_ID].remote_bda[4], gl_profile_tab[PROFILE_A_APP_ID].remote_bda[5]);
+        statidx += sprintf(&statrep[statidx], "\"trv\":\"%s\",", deviceId);
 
         if(p_data->notify.value[0] == PROP_INFO_RETURN && p_data->notify.value[1] == 1){
             if(p_data->notify.value_len > 5){
@@ -541,7 +549,7 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
             }
             statidx += sprintf(&statrep[statidx], "}");
             /* Send the status report we just collated */
-            send_trv_status(statrep);
+            send_trv_status(statrep, deviceId);
             /* Add to the log */
             eq3_add_log(statrep);
         }else{

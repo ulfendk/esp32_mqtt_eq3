@@ -181,11 +181,11 @@ static void data_cb(esp_mqtt_event_handle_t event){
 }
 
 /* Publish a status message */
-int send_trv_status(char *status){
+int send_trv_status(char *status, char *deviceId){
 	ESP_LOGI(MQTT_TAG, "send_trv_status");
     if(repclient != NULL){
         char topic[38];
-        sprintf(topic, "%s/status", outtopicbase);
+        sprintf(topic, "%s/%s/status", outtopicbase, deviceId);
         esp_mqtt_client_publish(repclient, topic, status, strlen(status), 0, 0);
     }
     return 0;
